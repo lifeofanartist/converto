@@ -88,18 +88,13 @@ def convert():
         language = request.form['language']
         
         if file and allowed_file(file.filename):
-            # Create the 'temp' directory if it doesn't exist
-            temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            # Save the file temporarily
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(temp_dir, filename)
-            file.save(file_path)
+            # Use in-memory storage instead of saving to disk
+            from io import BytesIO
+            file_bytes = BytesIO(file.read())
             
             try:
-                # Open the image using PIL
-                image = Image.open(file_path)
+                # Open the image using PIL directly from the file bytes
+                image = Image.open(file_bytes)
                 
                 # Perform OCR based on the selected language
                 if language == 'eng':
@@ -109,17 +104,12 @@ def convert():
                 else:
                     text = "Unsupported language selected"
                 
-                # Remove the temporary file
-                os.remove(file_path)
-                
                 return render_template('convert.html', text=text, username=user.username)
             except Exception as e:
-                # If any error occurs during processing, remove the file and show an error message
-                if os.path.exists(file_path):
-                    os.remove(file_path)
                 return render_template('convert.html', error=f"An error occurred: {str(e)}", username=user.username)
     
     return render_template('convert.html', text=None, username=user.username)
+
 
 @app.route('/logout')
 def logout():
